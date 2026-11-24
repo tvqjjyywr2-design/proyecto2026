@@ -1,0 +1,213 @@
+=====================================================================
+ TESTING - API ECOMMERCE GOLF
+=====================================================================
+Proyecto : backendProyecto (Node.js + Express 5 + MySQL/MariaDB)
+Base     : Marcos en cursotesting.com.ar (MariaDB 10.11)
+Runner   : node:test (incluido en Node.js, sin dependencias extra)
+HTTP     : fetch nativo de Node.js
+=====================================================================
+
+
+1. OBJETIVO
+---------------------------------------------------------------------
+Verificar el funcionamiento real de las APIs CRUD generadas para cada
+tabla del sistema, contra la base de datos configurada en .env.
+
+Las pruebas cubren:
+  - Codigos HTTP esperados.
+  - Forma de las respuestas (data, meta, errores).
+  - Creacion, lectura, actualizacion y borrado (CRUD).
+  - Metodos GET, POST, PUT, PATCH y DELETE.
+  - Paginacion, filtros y busqueda.
+  - Validaciones de campos obligatorios y valores invalidos.
+  - Reglas de negocio de la API y de la base.
+  - Integridad referencial (FK) y claves unicas.
+  - Columnas calculadas (Precio_Final y Subtotal).
+  - No exposicion de contrasenas (Clave) en las respuestas.
+
+Cada archivo levanta la app Express en un puerto efimero, ejecuta las
+peticiones HTTP y al finalizar cierra el servidor y el pool de MySQL.
+No es necesario ejecutar "npm run dev" antes de los tests.
+
+
+2. EJECUCION
+---------------------------------------------------------------------
+Todos los archivos:
+
+    npm test
+
+Un archivo por tabla:
+
+    npm run test:auth
+    npm run test:usuarios
+    npm run test:productos
+    npm run test:proceso-compra
+    npm run test:detalle-compra
+    npm run test:administrador
+
+Directamente con Node:
+
+    node --test scripts/api-usuarios.test.js
+
+Requisitos:
+  - .env configurado y base accesible.
+  - Node.js 18 o superior (recomendado Node 24).
+  - El usuario de la base debe poder INSERT/UPDATE/DELETE.
+
+
+3. ARCHIVOS
+---------------------------------------------------------------------
+scripts/test-utils.js
+  Infraestructura comun:
+    - startServer / stopServer: app en puerto efimero y cierre del pool.
+    - api: cliente HTTP con parseo JSON.
+    - tryDelete: limpieza tolerante a 404/503.
+    - uniqueSuffix / uniquePhone: datos unicos por ejecucion.
+
+scripts/api-auth.test.js
+  Login: Administrador y Usuarios
+  Endpoints: /api/auth/login, /api/usuarios
+
+scripts/api-usuarios.test.js
+  Tabla: Usuarios
+  Endpoints: /api/usuarios
+
+scripts/api-productos.test.js
+  Tabla: productos
+  Endpoints: /api/productos
+
+scripts/api-proceso-compra.test.js
+  Tabla: Proceso_Compra
+  Endpoints: /api/proceso-compra
+
+scripts/api-detalle-compra.test.js
+  Tabla: Detalle_Compra
+  Endpoints: /api/detalle-compra
+
+scripts/api-administrador.test.js
+  Tabla: Administrador
+  Endpoints: /api/administradores
+
+
+4. CONJUNTO DE PRUEBAS POR TABLA
+---------------------------------------------------------------------
+
+4.1 USUARIOS (api-usuarios.test.js)
+  - GET /api/usuarios: listado paginado y estructura meta.
+  - POST /api/usuarios: alta valida (201), hash de Clave y respuesta
+    sin el campo Clave.
+  - GET /api/usuarios/:id: obtiene el usuario creado.
+  - PATCH /api/usuarios/:id: actualizacion parcial de Activo y
+    Recibe_Publicidad.
+  - PUT /api/usuarios/:id: actualizacion de Residencia.
+  - GET /api/usuarios?q=: busqueda por nombre/email/usuario.
+  - POST con email duplicado: 409.
+  - POST con campos obligatorios faltantes: 400.
+  - GET de un id inexistente: 404.
+  - DELETE: 204 y posterior GET: 404.
+
+4.2 PRODUCTOS (api-productos.test.js)
+  - GET /api/productos: listado paginado.
+  - POST /api/productos: alta valida y calculo de Precio_Final
+    (1000 con 25% => 750).
+  - GET /api/productos/:id: obtiene el producto creado.
+  - PATCH: actualiza Precio, Porcentaje_Oferta y Stock, y recalcula
+    Precio_Final (1200 con 50% => 600).
+  - PUT: actualiza Stock manteniendo el Precio_Final calculado.
+  - GET /api/productos?q=: busqueda por nombre/descripcion/marca.
+  - POST con Tipo fuera del ENUM: 400.
+  - POST con campos obligatorios faltantes: 400.
+  - GET de un id inexistente: 404.
+  - DELETE: 204 y posterior GET: 404.
+
+4.3 PROCESO_COMPRA (api-proceso-compra.test.js)
+  - GET /api/proceso-compra: listado paginado.
+  - POST: alta de un carrito "En proceso" asociado a un usuario.
+  - Regla de negocio: no se puede marcar Entregado = 1 en un pedido
+    "En proceso" (400).
+  - Regla de negocio: Descuento_Aplicado no puede superar Importe (400).
+  - PATCH: finaliza la compra con Estado_Pago Pagado, Metodo_Pago
+    Tarjeta y Fecha_Pago.
+  - PUT: actualiza el Metodo_Pago de la compra finalizada.
+  - GET filtrado por idUsuario y Tipo=Finalizada.
+  - POST con idUsuario inexistente: 409 por FK.
+  - GET de un id inexistente: 404.
+  - DELETE: 204 y posterior GET: 404.
+
+4.4 DETALLE_COMPRA (api-detalle-compra.test.js)
+  - GET /api/detalle-compra: listado paginado.
+  - Crea una compra temporal para usarla como padre.
+  - POST: alta de linea con Cantidad=2 y Precio_Unitario=100,
+    verificando Subtotal=200.
+  - GET /api/detalle-compra/:id: obtiene la linea creada.
+  - GET filtrado por idTransaccion.
+  - PATCH Cantidad=3: recalcula Subtotal=300.
+  - PUT Precio_Unitario=150: recalcula Subtotal=450.
+  - PATCH Cantidad=0: 400 por validacion.
+  - POST con idTransaccion inexistente: 409 por FK.
+  - GET de un id inexistente: 404.
+  - DELETE: 204 y posterior GET: 404.
+
+4.5 ADMINISTRADOR (api-administrador.test.js)
+  - GET /api/administradores: listado paginado.
+  - POST: alta valida (201) sin exponer Clave.
+  - GET /api/administradores/:id: obtiene el administrador creado.
+  - PATCH: actualiza Activo y Rol.
+  - PUT: actualiza Intentos_Fallidos.
+  - GET ?q=: busqueda por nombre/email/usuario.
+  - POST con email duplicado: 409.
+  - POST con email invalido: 400.
+  - POST con campos obligatorios faltantes: 400.
+  - GET de un id inexistente: 404.
+  - DELETE: 204 y posterior GET: 404.
+
+
+4.6 AUTH (api-auth.test.js)
+  - POST /api/auth/login con email inexistente: 401.
+  - POST /api/auth/login con email mal formado: 400.
+  - Registro de un usuario nuevo (201) y login exitoso con rol
+    "cliente"; la respuesta no expone Clave.
+  - Login con contrasena incorrecta: 401.
+  - Registro con email repetido: 409 con mensaje especifico.
+  - Login de una cuenta con Activo = 0: 403.
+
+5. DATOS DE PRUEBA Y LIMPIEZA
+---------------------------------------------------------------------
+- Cada ejecucion genera un sufijo unico (timestamp + aleatorio), por lo
+  que no colisiona con datos existentes ni con ejecuciones anteriores.
+- Los registros temporales usan prefijos reconocibles:
+    * Emails: api.user.*, api.admin.*
+    * Usuarios: apiuser*, apiadmin*
+    * Productos: "Test API ..."
+- Cada archivo tiene un hook after() que elimina lo creado, incluso si
+  una prueba falla. El borrado de la compra temporal elimina en cascada
+  sus detalles.
+- Si el proceso se interrumpe de forma abrupta, pueden quedar registros
+  temporales; se identifican por los prefijos anteriores.
+
+
+6. ALCANCE Y LIMITACIONES
+---------------------------------------------------------------------
+CUBIERTO:
+  - CRUD de las 5 tablas activas.
+  - Login contra Administrador y Usuarios, incluyendo credenciales
+    invalidas y cuentas desactivadas.
+  - Codigos 200, 201, 204, 400, 401, 403, 404, 409 y 503.
+  - Paginacion, filtros y busqueda.
+  - Restricciones UNIQUE, FK y CHECK.
+  - Reglas de negocio implementadas en los controladores.
+  - Columnas generadas/calculadas.
+  - No exposicion de hashes de contrasena.
+
+NO CUBIERTO:
+  - JWT, sesiones en servidor y autorizacion por roles en los endpoints.
+  - Recuperacion o cambio de contrasena.
+  - Pruebas de carga, estres o concurrencia.
+  - Pruebas de interfaz de usuario o frontend.
+  - Envio real de emails.
+  - Escaneo de vulnerabilidades o pentesting.
+  - Pruebas de despliegue o configuracion del servidor web.
+
+Los tests modifican temporalmente la base remota y limpian sus propios
+registros. No borran datos preexistentes de la base Marcos.
+=====================================================================

@@ -1,0 +1,159 @@
+### API Ecommerce Golf — ejemplos CRUD
+### Extensión sugerida: REST Client (VS Code) o IntelliJ HTTP Client
+@host = http://localhost:3000/api
+@json = Content-Type: application/json
+
+### Health
+GET {{host}}/health
+
+### ============================ AUTH ===============================
+### Login (Administrador o Usuarios)
+POST {{host}}/auth/login
+{{json}}
+
+{
+  "email": "admin.prueba01@golfstore.com",
+  "clave": "Prueba2026!"
+}
+
+### ============================ USUARIOS ============================
+### Listar (filtros opcionales: activo, q, email, usuario, sort)
+GET {{host}}/usuarios?page=1&limit=20&sort=-idUsuario
+
+### Obtener
+GET {{host}}/usuarios/1
+
+### Crear
+POST {{host}}/usuarios
+{{json}}
+
+{
+  "Apellido_y_Nombre": "García, Sofía",
+  "Residencia": "Av. Siempre Viva 742, CABA",
+  "N_Movil": "+54 11 5555-8888",
+  "Email": "sofia.garcia@example.com",
+  "Usuario": "sgarcia",
+  "Clave": "Secreta123",
+  "Recibe_Publicidad": 1
+}
+
+### Actualizar (baja lógica)
+PATCH {{host}}/usuarios/4
+{{json}}
+
+{ "Activo": 0 }
+
+### Eliminar
+DELETE {{host}}/usuarios/4
+
+### ============================ PRODUCTOS ===========================
+### Listar (filtros: q, tipo, marca, precioMin, precioMax, conStock, sort)
+GET {{host}}/productos?conStock=true&sort=-Precio
+
+### Obtener
+GET {{host}}/productos/1
+
+### Crear
+POST {{host}}/productos
+{{json}}
+
+{
+  "Nombre_Corto": "Guante Pro Tour",
+  "Descripcion": "Guante de cabritilla con cierre ajustable.",
+  "Precio": 899.90,
+  "Porcentaje_Oferta": 15,
+  "Stock": 30,
+  "Marca": "GolfX",
+  "Tallas": "S,M,L,XL",
+  "Tipo": "Adulto Masculino"
+}
+
+### Actualizar stock
+PATCH {{host}}/productos/1
+{{json}}
+
+{ "Stock": 95 }
+
+### Eliminar
+DELETE {{host}}/productos/6
+
+### ======================== PROCESO DE COMPRA =======================
+### Listar (filtros: idUsuario, tipo, estadoPago, entregado, esBlackFriday, fechaDesde, fechaHasta)
+GET {{host}}/proceso-compra?tipo=Finalizada&estadoPago=Pagado
+
+### Obtener
+GET {{host}}/proceso-compra/1
+
+### Crear carrito
+POST {{host}}/proceso-compra
+{{json}}
+
+{
+  "idUsuario": 1,
+  "Tipo": "En proceso"
+}
+
+### Finalizar compra
+PATCH {{host}}/proceso-compra/5
+{{json}}
+
+{
+  "Tipo": "Finalizada",
+  "Importe": 499.80,
+  "Estado_Pago": "Pagado",
+  "Metodo_Pago": "Tarjeta",
+  "Fecha_Pago": "2026-11-19 11:15:00"
+}
+
+### Eliminar
+DELETE {{host}}/proceso-compra/5
+
+### ========================= DETALLE COMPRA =========================
+### Listar por transacción
+GET {{host}}/detalle-compra?idTransaccion=5
+
+### Crear línea (Subtotal se calcula automáticamente)
+POST {{host}}/detalle-compra
+{{json}}
+
+{
+  "idTransaccion": 5,
+  "idProductos": 1,
+  "Cantidad": 2,
+  "Precio_Unitario": 249.90
+}
+
+### Actualizar cantidad
+PATCH {{host}}/detalle-compra/1
+{{json}}
+
+{ "Cantidad": 3 }
+
+### Eliminar
+DELETE {{host}}/detalle-compra/1
+
+### ========================= ADMINISTRADORES ========================
+### Listar (filtros: rol, activo, q)
+GET {{host}}/administradores?rol=Admin
+
+### Crear
+POST {{host}}/administradores
+{{json}}
+
+{
+  "Apellido_y_Nombre": "Ruiz, Leonardo",
+  "Email": "leonardo.ruiz@tiendaadmin.com",
+  "N_Movil": "+54 11 4000-3333",
+  "Usuario": "lruiz",
+  "Clave": "Secreta123",
+  "Rol": "Editor"
+}
+
+### Actualizar
+PATCH {{host}}/administradores/3
+{{json}}
+
+{ "Activo": 0, "Rol": "Admin" }
+
+### Eliminar
+DELETE {{host}}/administradores/3
