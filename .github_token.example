@@ -1,0 +1,7 @@
+# Token personal de GitHub (PAT) para el MCP de opencode.json.
+# Copiar este archivo a .github_token y reemplazar la última línea por el token.
+# Acá va SOLO el token (sin clave ni comillas), porque opencode.json inserta el
+# contenido completo del archivo en el header "Authorization: Bearer ...".
+# Generarlo en https://github.com/settings/tokens (classic) con los scopes:
+#   repo, read:org, read:user
+ghp_reemplazar_por_el_token_real
